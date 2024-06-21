@@ -6,7 +6,7 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 
 # Cargar los datos desde el archivo CSV
-df = pd.read_csv('BRK-A.csv')
+df = pd.read_csv('MSFT.csv')
 
 # Preprocesamiento de datos
 df['Date'] = pd.to_datetime(df['Date'])
