@@ -1,3 +1,6 @@
+'''
+Gradient Boosting Machine
+'''
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -6,7 +9,7 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 
 # Cargar los datos desde el archivo CSV
-df = pd.read_csv('MSFT.csv')
+df = pd.read_csv('AAPL.csv')
 
 # Preprocesamiento de datos
 df['Date'] = pd.to_datetime(df['Date'])
@@ -26,7 +29,7 @@ X = df.drop(columns=['Close'])
 y = df['Close']
 
 # Dividir los datos en conjuntos de entrenamiento y prueba
-train_size = 0.7
+train_size = 0.99
 split_index = int(train_size * len(df))
 
 X_train, X_test = X[:split_index], X[split_index:]
@@ -42,7 +45,7 @@ params = {
     'colsample_bytree': 0.8,
     'n_estimators': 100
 }
-model = xgb.XGBRegressor(**params)
+model = xgb.XGBRegressor()
 
 # Entrenar el modelo
 model.fit(X_train, y_train)
