@@ -42,12 +42,13 @@ def preprocess_text(text):
 # Definim la cadena de cerca
 search_query = 'bitcoin OR ethereum OR cryptocurrency'
 
-# Recopilem tweets relacionats amb criptomonedes amb la nova sintaxi de Tweepy
-tweets = tweepy.Cursor(api.search, q=search_query, tweet_mode='extended').items(1000)
+# Recopilem tweets relacionats amb criptomonedes amb l'API v1.1 de Tweepy
+tweets = api.search(q=search_query, tweet_mode='extended', count=1000)
 
 tweet_texts = []
 for tweet in tweets:
     tweet_texts.append(tweet.full_text)
+
 
 # Preprocessa els tweets
 cleaned_tweets = [preprocess_text(tweet) for tweet in tweet_texts]
