@@ -43,7 +43,7 @@ def preprocess_text(text):
 search_query = 'bitcoin OR ethereum OR cryptocurrency'
 
 # Recopilem tweets relacionats amb criptomonedes amb l'API v1.1 de Tweepy
-tweets = api.search(q=search_query, tweet_mode='extended', count=1000)
+tweets = api.search_tweets(q=search_query, tweet_mode='extended', count=3)
 
 tweet_texts = []
 for tweet in tweets:
