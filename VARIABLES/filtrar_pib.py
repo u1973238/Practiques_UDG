@@ -7,17 +7,16 @@ FILTREM LES DADES DEL PIB MUNDIAL - DE 2020 A 2024
 import pandas as pd
 
 # Ruta al fitxer CSV
-file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/pib.csv'
+file_path = 'pib.csv'
 
 # Llegim el fitxer CSV
 df = pd.read_csv(file_path)
-print("Fitxer llegit correctament")
-print(df.head())
+
 
 # Selecciona les columnes d'interès (modifica segons el nom real de les columnes)
 # Assegura't que els anys són cadenes de text
 columns_of_interest = [
-    'Country Name', 'Country Code', 'Indicator Name', 'Indicator Code', '2020', '2021', '2022', '2023', '2024'
+    'Country Name', 'Country Code', 'Indicator Name', 'Indicator Code', '2020', '2021', '2022', '2023'
 ]
 
 # Comprova si les columnes d'interès existeixen en el DataFrame
@@ -37,12 +36,11 @@ for year in columns_of_interest[4:]:  # Omiteix les primeres quatre columnes que
     df_filtered[year] = pd.to_numeric(df_filtered[year], errors='coerce')
     mean_value = df_filtered[year].mean(skipna=True)
     df_filtered[year].fillna(mean_value, inplace=True)
-
+'''
 # Guarda el resultat en un nou fitxer Excel
 filtered_file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/pib_filtrat.xlsx'
 try:
     df_filtered.to_excel(filtered_file_path, index=False, engine='openpyxl')
     print(f"Dades filtrades guardades a {filtered_file_path}")
 except Exception as e:
-    print(f"Error guardant el fitxer: {e}")
-
+'''
