@@ -1,67 +1,63 @@
-import pandas as pd
+import yfinance as yf
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+import matplotlib.pyplot as plt
 
-# Load the dataset
-data = pd.read_csv('CSV\AAPL.csv')
+# Downloading Historical Stock Data
+stock_symbol = 'AAPL'
+start_date = '2020-01-01'
+end_date = '2024-01-01'
+data = yf.download(stock_symbol, start=start_date, end=end_date)
 
-# Preprocess the data
-data['Date'] = pd.to_datetime(data['Date'])
-data.set_index('Date', inplace=True)
-data = data['Close'].values  # Assuming 'Close' is the column we are interested in
-data = data.reshape(-1, 1)
-
-# Normalize the data
+# Data Preprocessing
+close_prices = data['Close'].values.reshape(-1, 1)
 scaler = MinMaxScaler(feature_range=(0, 1))
-scaled_data = scaler.fit_transform(data)
+close_prices_scaled = scaler.fit_transform(close_prices)
 
-# Create sequences of data
-def create_sequences(data, seq_length):
-    sequences = []
-    labels = []
-    for i in range(len(data) - seq_length):
-        sequences.append(data[i:i + seq_length])
-        labels.append(data[i + seq_length])
-    return np.array(sequences), np.array(labels)
+# Creating Input Data for LSTM
+def create_lstm_data(data, time_steps=1):
+    x, y = [], []
+    for i in range(len(data) - time_steps):
+        x.append(data[i:(i + time_steps), 0])
+        y.append(data[i + time_steps, 0])
+    return np.array(x), np.array(y)
 
-seq_length = 60
-X, y = create_sequences(scaled_data, seq_length)
+# Setting Time Steps and Creating Input Data
+time_steps = 10
+x, y = create_lstm_data(close_prices_scaled, time_steps)
+x = np.reshape(x, (x.shape[0], x.shape[1], 1))
 
-# Split the data into training and testing sets
-train_size = int(len(X) * 0.8)
-X_train, X_test = X[:train_size], X[train_size:]
-y_train, y_test = y[:train_size], y[train_size:]
+# Splitting the data into training and test sets
+train_size = int(len(x) * 0.8)
+test_size = len(x) - train_size
+x_train, x_test = x[0:train_size], x[train_size:len(x)]
+y_train, y_test = y[0:train_size], y[train_size:len(y)]
 
-# Build the LSTM model
+# Building the LSTM Model
 model = Sequential()
-model.add(LSTM(units=50, return_sequences=True, input_shape=(seq_length, 1)))
-model.add(Dropout(0.2))
-model.add(LSTM(units=50, return_sequences=False))
-model.add(Dropout(0.2))
+model.add(LSTM(units=50, return_sequences=True, input_shape=(time_steps, 1)))
+model.add(LSTM(units=50))
 model.add(Dense(units=1))
-
 model.compile(optimizer='adam', loss='mean_squared_error')
 
-# Train the model
-history = model.fit(X_train, y_train, epochs=20, batch_size=32, validation_split=0.2)
+# Training the Model
+model.fit(x_train, y_train, epochs=50, batch_size=32)
 
-# Evaluate the model
-loss = model.evaluate(X_test, y_test)
-print(f'Test Loss: {loss}')
+# Predicting on the Test Data
+predictions = model.predict(x_test)
+predictions = scaler.inverse_transform(predictions)
+y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-# Make predictions
-predicted_prices = model.predict(X_test)
-predicted_prices = scaler.inverse_transform(predicted_prices)
-
-# Plot the results
-plt.figure(figsize=(10, 6))
-plt.plot(data[len(data) - len(y_test):], color='blue', label='Actual Stock Price')
-plt.plot(predicted_prices, color='red', label='Predicted Stock Price')
+# Plotting the results
+plt.figure(figsize=(14, 5))
+plt.plot(data.index[train_size + time_steps:], y_test, color='blue', label='Actual Prices')
+plt.plot(data.index[train_size + time_steps:], predictions, color='red', label='Predicted Prices')
 plt.title('Stock Price Prediction')
-plt.xlabel('Time')
+plt.xlabel('Date')
 plt.ylabel('Stock Price')
 plt.legend()
 plt.show()
+

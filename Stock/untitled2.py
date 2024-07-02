@@ -30,39 +30,34 @@ time_steps = 10
 x, y = create_lstm_data(close_prices_scaled, time_steps)
 x = np.reshape(x, (x.shape[0], x.shape[1], 1))
 
+# Splitting the data into training and test sets
+train_size = int(len(x) * 0.8)
+test_size = len(x) - train_size
+x_train, x_test = x[0:train_size], x[train_size:len(x)]
+y_train, y_test = y[0:train_size], y[train_size:len(y)]
+
 # Building the LSTM Model
 model = Sequential()
-model.add(LSTM(units=50, return_sequences=True, input_shape=(x.shape[1], 1)))
+model.add(LSTM(units=50, return_sequences=True, input_shape=(time_steps, 1)))
 model.add(LSTM(units=50))
 model.add(Dense(units=1))
 model.compile(optimizer='adam', loss='mean_squared_error')
 
 # Training the Model
-model.fit(x, y, epochs=50, batch_size=32)
+model.fit(x_train, y_train, epochs=50, batch_size=32)
 
-# Predicting Future Stock Prices
-future_days = 30
-predicted_prices = []
-
-# Use the last time_steps data for predicting future prices
-last_data = close_prices_scaled[-time_steps:].reshape(1, time_steps, 1)
-
-for _ in range(future_days):
-    pred = model.predict(last_data)
-    predicted_prices.append(pred[0, 0])
-    last_data = np.append(last_data[:, 1:, :], pred.reshape(1, 1, 1), axis=1)
-
-# Inverse transform the predicted prices
-predicted_prices = scaler.inverse_transform(np.array(predicted_prices).reshape(-1, 1))
-
-# Displaying Predictions
-future_dates = pd.date_range(start=end_date, periods=future_days + 1)[1:]  # Skip the start date
-future_data = pd.DataFrame({'Date': future_dates, 'Predicted Price': predicted_prices.flatten()})
-print(future_data)
+# Predicting on the Test Data
+predictions = model.predict(x_test)
+predictions = scaler.inverse_transform(predictions)
+y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
 
 # Plotting the results
 plt.figure(figsize=(14, 5))
-plt.plot(data['Close'], label='Original Data')
-plt.plot(pd.date_range(start=data.index[-1], periods=future_days + 1)[1:], predicted_prices, label='Predicted Data')
+plt.plot(data.index[train_size + time_steps:], y_test, color='blue', label='Actual Prices')
+plt.plot(data.index[train_size + time_steps:], predictions, color='red', label='Predicted Prices')
+plt.title('Stock Price Prediction')
+plt.xlabel('Date')
+plt.ylabel('Stock Price')
 plt.legend()
 plt.show()
+
