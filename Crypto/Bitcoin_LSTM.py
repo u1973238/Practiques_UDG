@@ -7,11 +7,11 @@ from keras.layers import LSTM, Dense
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 
-# Downloading Historical Stock Data
-stock_symbol = 'AAPL'
+# Downloading Historical Bitcoin Data
+crypto_symbol = 'BTC-USD'
 start_date = '2020-01-01'
-end_date = '2021-01-01'
-data = yf.download(stock_symbol, start=start_date, end=end_date)
+end_date = '2024-01-01'
+data = yf.download(crypto_symbol, start=start_date, end=end_date)
 
 # Data Preprocessing
 close_prices = data['Close'].values.reshape(-1, 1)
@@ -71,7 +71,7 @@ print(accuracy_score(y_test, predictions))
 plt.figure(figsize=(14, 5))
 plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(y_test)], y_test, color='blue', label='Actual Direction')
 plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(predictions)], predictions, color='red', label='Predicted Direction')
-plt.title('Stock Price Movement Prediction')
+plt.title('Bitcoin Price Movement Prediction')
 plt.xlabel('Date')
 plt.ylabel('Movement (0: Down, 1: Up)')
 plt.legend()
