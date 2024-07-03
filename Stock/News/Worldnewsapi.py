@@ -20,6 +20,7 @@ with open(file_path, 'w', encoding='utf-8') as file:
         if 'title' in article and 'publish_date' in article:
             file.write(f"Title: {article['title']}\n")
             file.write(f"Published At: {article['publish_date']}\n")
+            file.write(f"sentiment: {article['sentiment']}\n")
             file.write("\n")
         else:
             print(f"Missing 'title' or 'publish_date' in article: {article}")
