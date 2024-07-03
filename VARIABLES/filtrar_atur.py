@@ -1,23 +1,39 @@
 # -*- coding: utf-8 -*-
 """
 pràctiques eXiT - Cryptocurrency and stock change - Josep Serra i Mar Bulló
-FILTREM LES DADES DE L'ATUR MUNDIAL - DE 2020 A 2024
+FILTREM LES DADES DE L'ATUR MUNDIAL - DE 2020 A 2023
 """
 
 import pandas as pd
 
 # Ruta al fitxer CSV
-file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/atur.csv'
+file_path = 'atur.csv'
 
-# Llegim el fitxer CSV
-df = pd.read_csv(file_path)
-print("Fitxer llegit correctament")
+# Llegeix manualment les primeres línies del fitxer
+with open(file_path, 'r', encoding='utf-8') as file:
+    lines = [next(file) for _ in range(10)]  # Llegeix les primeres 10 línies
+    for line in lines:
+        print(line)
+
+# Llegim el fitxer CSV especificant el delimitador i corregim les cometes dobles
+try:
+    df = pd.read_csv(file_path, delimiter=',', quotechar='"', doublequote=True)
+    print("Fitxer llegit correctament")
+except Exception as e:
+    print(f"Error llegint el fitxer: {e}")
+
+# Mostra les primeres files per verificar si s'ha llegit correctament
 print(df.head())
 
+# Neteja els noms de les columnes per eliminar cometes dobles i espais innecessaris
+df.columns = df.columns.str.strip().str.replace('"', '')
+
+print("Columnes disponibles al fitxer CSV després de netejar:")
+print(df.columns)
+
 # Selecciona les columnes d'interès (modifica segons el nom real de les columnes)
-# Assegura't que els anys són cadenes de text
 columns_of_interest = [
-   'Country Name','2020','2021','2022','2023'
+    'Country Name', 'Country Code', 'Indicator Name', 'Indicator Code', '2020', '2021', '2022', '2023'
 ]
 
 # Comprova si les columnes d'interès existeixen en el DataFrame
@@ -45,5 +61,3 @@ try:
     print(f"Dades filtrades guardades a {filtered_file_path}")
 except Exception as e:
     print(f"Error guardant el fitxer: {e}")
-
-
