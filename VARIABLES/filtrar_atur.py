@@ -7,7 +7,7 @@ FILTREM LES DADES DE L'ATUR MUNDIAL - DE 2020 A 2023
 import pandas as pd
 
 # Ruta al fitxer CSV
-file_path = 'atur.csv'
+file_path = 'preu_setm_or.csv'
 
 # Llegeix manualment les primeres línies del fitxer
 with open(file_path, 'r', encoding='utf-8') as file:
