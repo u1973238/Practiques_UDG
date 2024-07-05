@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
 """
 pràctiques eXiT - Cryptocurrency and stock change - Josep Serra i Mar Bulló
-FILTREM LES DADES DEL PIB MUNDIAL - DE 2020 A 2024
+FILTREM LES DADES DEL PREU DE L'OR DE L'ULTIM ANY (dades setmanals)
 """
 
 import pandas as pd
 
 # Ruta al fitxer CSV
-file_path = 'pib.csv'
+file_path = 'preu_setm_or.csv'
 
-# Llegim el fitxer CSV
+# Llegeix el fitxer CSV directament en un DataFrame
 df = pd.read_csv(file_path)
 
+# Opcional: transposa el DataFrame si és necessari
+# df = df.T
 
 # Selecciona les columnes d'interès (modifica segons el nom real de les columnes)
-# Assegura't que els anys són cadenes de text
-columns_of_interest = [
-    'Country Name', 'Country Code', 'Indicator Name', 'Indicator Code', '2020', '2021', '2022', '2023'
+columns_of_interest = [ 
+    "30.06.2024", "23.06.2024", "16.06.2024", 
+    "09.06.2024", "02.06.2024", "26.05.2024", 
+    "19.05.2024", "12.05.2024", "05.05.2024", 
+    "28.04.2024", "21.04.2024", "14.04.2024", "07.04.2024"
 ]
 
 # Comprova si les columnes d'interès existeixen en el DataFrame
@@ -30,15 +34,15 @@ df_filtered = df[columns_of_interest]
 # Substitueix 'no data' per NaN
 df_filtered.replace('no data', pd.NA, inplace=True)
 
-# Omple els valors buits amb la mitjana de cada any
-for year in columns_of_interest[4:]:  # Omiteix les primeres quatre columnes que no són anys
+# Omple els valors buits amb la mitjana de cada columna
+for col in df_filtered.columns:
     # Assegura't que la columna és numèrica abans de calcular la mitjana
-    df_filtered[year] = pd.to_numeric(df_filtered[year], errors='coerce')
-    mean_value = df_filtered[year].mean(skipna=True)
-    df_filtered[year].fillna(mean_value, inplace=True)
+    df_filtered[col] = pd.to_numeric(df_filtered[col], errors='coerce')
+    mean_value = df_filtered[col].mean(skipna=True)
+    df_filtered[col].fillna(mean_value, inplace=True)
 
 # Guarda el resultat en un nou fitxer Excel
-filtered_file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/pib_filtrat.xlsx'
+filtered_file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/or_filtrat.xlsx'
 try:
     df_filtered.to_excel(filtered_file_path, index=False, engine='openpyxl')
     print(f"Dades filtrades guardades a {filtered_file_path}")
