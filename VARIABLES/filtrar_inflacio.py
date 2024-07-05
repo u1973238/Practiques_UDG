@@ -8,7 +8,7 @@ FILTREM LES DADES DE LA INFLACIÓ MUNDIAL - DE 2020 A 2024
 import pandas as pd
 
 # Ruta al fitxer Excel
-file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/inflacio.xls'
+file_path = 'inflacio.xls'
 
 # Llegim el fitxer Excel
 df = pd.read_excel(file_path)
@@ -42,10 +42,7 @@ for year in columns_of_interest[1:]:  # Omiteix la columna d'inflació
     mean_value = df_filtered[year].mean(skipna=True)
     df_filtered[year].fillna(mean_value, inplace=True)
 
-# Guarda el resultat en un nou fitxer Excel
-filtered_file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/inflacio_filtrada.xlsx'
-try:
-    df_filtered.to_excel(filtered_file_path, index=False)
-    print(f"Dades filtrades guardades a {filtered_file_path}")
-except Exception as e:
-    print(f"Error guardant el fitxer: {e}")
+# Guardar les dades filtrades en un nou fitxer CSV
+output_file_path = 'inflacio_filtrada.csv'
+df_filtered.to_csv(output_file_path, index=False)
+

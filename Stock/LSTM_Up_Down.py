@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # Downloading Historical Stock Data
 stock_symbol = 'AAPL'
 start_date = '2020-01-01'
-end_date = '2024-01-01'
+end_date = '2023-12-31'
 data = yf.download(stock_symbol, start=start_date, end=end_date)
 
 # Resampling stock data to weekly frequency

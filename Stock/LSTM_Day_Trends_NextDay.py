@@ -7,10 +7,24 @@ from keras.layers import LSTM, Dense
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 
+'''
+import tensorflow as tf
+import random
+
+# Set random seed for Python's built-in random module
+random.seed(42)
+
+# Set random seed for NumPy
+np.random.seed(42)
+
+# Set random seed for TensorFlow
+tf.random.set_seed(42)
+'''
+
 # Downloading Historical Stock Data
 stock_symbol = 'AAPL'
 start_date = '2020-01-01'
-end_date = '2021-01-01'
+end_date = '2023-12-31'
 data = yf.download(stock_symbol, start=start_date, end=end_date)
 
 # Data Preprocessing

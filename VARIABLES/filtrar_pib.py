@@ -36,11 +36,9 @@ for year in columns_of_interest[4:]:  # Omiteix les primeres quatre columnes que
     df_filtered[year] = pd.to_numeric(df_filtered[year], errors='coerce')
     mean_value = df_filtered[year].mean(skipna=True)
     df_filtered[year].fillna(mean_value, inplace=True)
-'''
-# Guarda el resultat en un nou fitxer Excel
-filtered_file_path = 'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/pib_filtrat.xlsx'
-try:
-    df_filtered.to_excel(filtered_file_path, index=False, engine='openpyxl')
-    print(f"Dades filtrades guardades a {filtered_file_path}")
-except Exception as e:
-'''
+
+# Guardar les dades filtrades en un nou fitxer CSV
+output_file_path = 'pib_filtered.csv'
+df_filtered.to_csv(output_file_path, index=False)
+
+

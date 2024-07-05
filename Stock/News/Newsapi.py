@@ -19,7 +19,7 @@ data = response.json()
 
 articles = data['articles']
 
-file_path = 'top_headlines.txt'
+file_path = 'NewsApi.txt'
 
 with open(file_path, 'w', encoding='utf-8') as file:
     for article in articles:
