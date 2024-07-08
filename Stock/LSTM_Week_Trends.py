@@ -80,20 +80,23 @@ x, y = create_lstm_data(close_prices_scaled, google_trends_scaled, labels, time_
 x = np.reshape(x, (x.shape[0], x.shape[1], 2))
 
 # Splitting the data into training and test sets
-train_size = int(len(x) * 0.9)
+train_size = int(len(x) * 0.8)  # Reduir el tamany del conjunt de test
 test_size = len(x) - train_size
 x_train, x_test = x[0:train_size], x[train_size:len(x)]
 y_train, y_test = y[0:train_size], y[train_size:len(y)]
 
+# Balanced class distribution in training set
+class_weight = {0: 1.0, 1: sum(y_train == 0) / sum(y_train == 1)}
+
 # Building the LSTM Model
 model = Sequential()
-model.add(LSTM(units=50, return_sequences=True, input_shape=(time_steps, 2)))
+model.add(LSTM(units=100, return_sequences=True, input_shape=(time_steps, 2)))
 model.add(LSTM(units=50))
 model.add(Dense(units=1, activation='sigmoid'))
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
 # Training the Model
-model.fit(x_train, y_train, epochs=50, batch_size=32)
+model.fit(x_train, y_train, epochs=100, batch_size=32, class_weight=class_weight)
 
 # Predicting on the Test Data
 predictions = model.predict(x_test)
