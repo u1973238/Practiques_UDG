@@ -6,55 +6,7 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense
 import matplotlib.pyplot as plt
 
-# Download Historical Stock Data
-stock_symbol = 'AAPL'
-start_date = '2023-07-01'
-end_date = '2024-07-01'
-data = yf.download(stock_symbol, start=start_date, end=end_date)
-
-# Data Preprocessing
-data['Pct_Change'] = data['Close'].shift(-1) - data['Close']
-data = data.dropna()
-
-# Extract the labels (price differences)
-labels = data['Pct_Change'].shift(-1).dropna().values
-
-# Normalize the labels (price differences) to the range [-1, 1]
-scaler_change = MinMaxScaler(feature_range=(-1, 1))
-labels_scaled = scaler_change.fit_transform(labels.reshape(-1, 1))
-
-# Prepare the closing prices for input data
-close_prices = data['Close'].values.reshape(-1, 1)
-scaler_prices = MinMaxScaler(feature_range=(0, 1))
-close_prices_scaled = scaler_prices.fit_transform(close_prices)
-
-# Generate synthetic Google Trends data for demonstration
-# Replace this with actual Google Trends data
-np.random.seed(42)  # This is just to ensure the synthetic data is reproducible, can be removed for actual data
-'FALTA QUE AGAFA EL TRENS, ARA MATEIX ES RANDOM'
-google_trends_data = {
-    'Apple': np.random.rand(),
-    'AAPL': np.random.rand(len(data)),
-    'iPhone': np.random.rand(len(data)),
-    'MacBook': np.random.rand(len(data)),
-    'Tim Cook': np.random.rand(len(data)),
-    'Samsung': np.random.rand(len(data)),
-    'Apple store': np.random.rand(len(data)),
-    'Apple Watch': np.random.rand(len(data)),
-    'iPad': np.random.rand(len(data)),
-    'Apple services': np.random.rand(len(data)),
-    'Apple support': np.random.rand(len(data)),
-    'Apple reviews': np.random.rand(len(data)),
-    'Apple accessories': np.random.rand(len(data)),
-}
-google_trends_df = pd.DataFrame(google_trends_data, index=data.index)
-'''
-# Normalize Google Trends data
-scaler_trends = MinMaxScaler(feature_range=(0, 1))
-google_trends_scaled = scaler_trends.fit_transform(google_trends_df)
-
-# Combine the stock prices and Google Trends data
-combined_data = np.hstack((close_prices_scaled[:-1], google_trends_scaled[:-1]))  # Exclude last day for labels
+#Read CSV
 
 # Creating Input Data for LSTM
 def create_lstm_data(data, labels, time_steps=1):
@@ -100,5 +52,3 @@ plt.xlabel('Date')
 plt.ylabel('Price Change ($)')
 plt.legend()
 plt.show()
-
-'''
