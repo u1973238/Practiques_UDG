@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 # Downloading Historical Stock Data
 stock_symbol = 'AAPL'
-start_date = '2020-01-01'
-end_date = '2024-01-01'
+start_date = '2023-07-01'
+end_date = '2024-07-01'
 data = yf.download(stock_symbol, start=start_date, end=end_date)
 
 # Data Preprocessing
@@ -51,13 +51,30 @@ predictions = model.predict(x_test)
 predictions = scaler.inverse_transform(predictions)
 y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
 
+# Predicting the next day's price
+last_time_step_data = close_prices_scaled[-time_steps:]
+last_time_step_data = np.reshape(last_time_step_data, (1, time_steps, 1))
+
+next_day_prediction_scaled = model.predict(last_time_step_data)
+next_day_prediction = scaler.inverse_transform(next_day_prediction_scaled)
+
 # Plotting the results
 plt.figure(figsize=(14, 5))
 plt.plot(data.index[train_size + time_steps:], y_test, color='blue', label='Actual Prices')
 plt.plot(data.index[train_size + time_steps:], predictions, color='red', label='Predicted Prices')
+
+# Extend the plot to include the next day's prediction
+extended_dates = np.append(data.index, data.index[-1] + pd.Timedelta(days=1))
+extended_actual_prices = np.append(close_prices, np.nan)
+extended_predictions = np.append(predictions.flatten(), next_day_prediction[0][0])
+
+plt.plot(extended_dates[-(test_size + 1):], extended_actual_prices[-(test_size + 1):], color='blue', linestyle='dotted')
+plt.plot(extended_dates[-(test_size + 1):], extended_predictions[-(test_size + 1):], color='red', linestyle='dotted', label='Next Day Prediction')
+
 plt.title('Stock Price Prediction')
 plt.xlabel('Date')
 plt.ylabel('Stock Price')
 plt.legend()
 plt.show()
 
+print(f"Predicted price for the next day: {next_day_prediction[0][0]}")
