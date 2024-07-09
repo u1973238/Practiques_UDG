@@ -1,8 +1,13 @@
+
+#cd C:\Users\Mar\Documents\GitHub\Practiques_UDG\Stock
+#python GRU_Day_PID.py
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.utils import resample
 from keras.models import Sequential
-from keras.layers import GRU, Dense, Dropout
+from keras.layers import GRU, Dense, Dropout, BatchNormalization
 from keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
 import matplotlib.pyplot as plt
@@ -69,16 +74,35 @@ x, y = create_gru_data(close_prices_scaled, pid_scaled, labels, time_steps)
 x = np.reshape(x, (x.shape[0], x.shape[1], 2))
 
 # Split data
-train_size = int(len(x) * 0.9)
+train_size = int(len(x) * 0.7)
 x_train, x_test = x[:train_size], x[train_size:]
 y_train, y_test = y[:train_size], y[train_size:]
+
+# Resample to balance classes
+train_data = np.hstack((x_train.reshape(x_train.shape[0], -1), y_train.reshape(-1, 1)))
+majority_class = train_data[train_data[:, -1] == 0]
+minority_class = train_data[train_data[:, -1] == 1]
+
+# Sobremostreig de la classe minoritària
+minority_class_upsampled = resample(minority_class, replace=True, n_samples=len(majority_class), random_state=123)
+# Combinar les classes sobremostrejades amb la classe majoritària
+train_data_balanced = np.vstack((majority_class, minority_class_upsampled))
+
+# Dividir de nou en funcions i etiquetes
+x_train_balanced = train_data_balanced[:, :-1].reshape(-1, time_steps, 2)
+y_train_balanced = train_data_balanced[:, -1]
+
+# Verificar l'equilibri de classes
+print(f'Class distribution in training set: {np.bincount(y_train_balanced.astype(int))}')
 
 # Build the GRU Model
 model = Sequential()
 model.add(GRU(units=50, return_sequences=True, input_shape=(time_steps, 2)))
-model.add(Dropout(0.2))  # Dropout layer
+model.add(Dropout(0.2))
+model.add(GRU(units=50, return_sequences=True))
+model.add(Dropout(0.2))
 model.add(GRU(units=50))
-model.add(Dropout(0.2))  # Dropout layer
+model.add(Dropout(0.2))
 model.add(Dense(units=1, activation='sigmoid'))
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
@@ -86,7 +110,7 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']
 early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
 # Train the model
-history = model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.1, callbacks=[early_stopping])
+history = model.fit(x_train_balanced, y_train_balanced, epochs=50, batch_size=32, validation_split=0.1, callbacks=[early_stopping])
 
 # Predict on the test data
 predictions = model.predict(x_test)
