@@ -1,12 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-pràctiques eXiT - Cryptocurrency and stock change - Josep Serra i Mar Bulló
-FILTREM LES DADES DEL PREU DE MATÈRIES PRIMERES(dades diàries dels últims tres mesos)
-"""
-
+import pandas as pd
 import yfinance as yf
 import numpy as np
-import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
@@ -19,10 +13,13 @@ import time
 def read_and_preprocess_csv(file_path):
     df = pd.read_csv(file_path, parse_dates=['Fecha'])
     columns_of_interest = ["Fecha", "Último", "Apertura", "Máximo", "Mínimo", "Vol.", "% var."]
+    
+    # Convertir les columnes numèriques a format numèric, manejant errors
     for col in columns_of_interest:
         if col != "Fecha" and col != "Vol.":
+            df[col] = pd.to_numeric(df[col].str.replace('.', '').str.replace(',', '.'), errors='coerce')
             mean_value = df[col].mean(skipna=True)
-            df[col].fillna(mean_value, inplace=True)
+            df[col] = df[col].fillna(mean_value)  # Canvi per evitar FutureWarning
     return df
 
 # Funció per guardar el dataframe en un fitxer Excel
@@ -69,7 +66,19 @@ def fetch_google_trends_data(keyword, start_date, end_date):
 stock_symbol = 'AAPL'
 start_date = '2020-01-01'
 end_date = '2024-01-01'
-data = yf.download(stock_symbol, start=start_date, end=end_date)
+
+try:
+    data = yf.download(stock_symbol, start=start_date, end=end_date)
+    if data.empty:
+        raise ValueError(f"No data found for symbol {stock_symbol}.")
+except Exception as e:
+    print(f"Error downloading data: {e}")
+    # Aquí pots carregar un fitxer local com a alternativa
+    data = pd.read_csv('path_to_local_file.csv', parse_dates=['Date'], index_col='Date')
+
+# Assegurar-se que l'índex és de tipus DatetimeIndex
+if not isinstance(data.index, pd.DatetimeIndex):
+    data.index = pd.to_datetime(data.index)
 
 # Re-samplar dades de la borsa a freqüència setmanal
 data = data.resample('W').last()
@@ -114,17 +123,10 @@ def create_lstm_data(stock_data, trends_data, labels, time_steps=10):
         y.append(labels[i + time_steps])
     return np.array(x), np.array(y)
 
-# Establir passos de temps i crear dades d'entrada
+# Configuració dels passos de temps i creació de les dades d'entrada
 time_steps = 10
 x, y = create_lstm_data(close_prices_scaled, google_trends_scaled, labels, time_steps)
 x = np.reshape(x, (x.shape[0], x.shape[1], 2))
-
-# Afegir dades de les matèries primeres al model
-for key in data_frames.keys():
-    df = data_frames[key]
-    df = df.set_index('Fecha').resample('W').last()
-    scaled_data = MinMaxScaler(feature_range=(0, 1)).fit_transform(df['Último'].values.reshape(-1, 1))[:-1]
-    x = np.concatenate((x, np.reshape(scaled_data[:len(x)], (x.shape[0], x.shape[1], 1))), axis=2)
 
 # Dividir les dades en conjunts d'entrenament i prova
 train_size = int(len(x) * 0.8)
@@ -137,7 +139,7 @@ class_weight = {0: 1.0, 1: sum(y_train == 0) / sum(y_train == 1)}
 
 # Construir el model LSTM
 model = Sequential()
-model.add(LSTM(units=100, return_sequences=True, input_shape=(time_steps, x.shape[2])))
+model.add(LSTM(units=100, return_sequences=True, input_shape=(time_steps, 2)))
 model.add(LSTM(units=50))
 model.add(Dense(units=1, activation='sigmoid'))
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
@@ -145,25 +147,25 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']
 # Entrenar el model
 model.fit(x_train, y_train, epochs=100, batch_size=32, class_weight=class_weight)
 
-# Predir sobre les dades de prova
+# Predir amb les dades de prova
 predictions = model.predict(x_test)
 predictions = np.where(predictions > 0.5, 1, 0)
 
 # Avaluar el model
-print("Matriu de Confusió:")
+print("Confusion Matrix:")
 print(confusion_matrix(y_test, predictions))
-print("Informe de Classificació:")
+print("Classification Report:")
 print(classification_report(y_test, predictions))
-print("Precisió:")
+print("Accuracy Score:")
 print(accuracy_score(y_test, predictions))
 
-# Representar els resultats
+# Representació gràfica dels resultats
 plt.figure(figsize=(14, 5))
-plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(y_test)], y_test, color='blue', label='Direcció Real')
-plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(predictions)], predictions, color='red', label='Direcció Predita')
-plt.title('Predicció del Moviment del Preu de les Accions amb Google Trends')
-plt.xlabel('Data')
-plt.ylabel('Moviment (0: Avall, 1: Amunt)')
+plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(y_test)], y_test, color='blue', label='Actual Direction')
+plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(predictions)], predictions, color='red', label='Predicted Direction')
+plt.title('Stock Price Movement Prediction with Google Trends')
+plt.xlabel('Date')
+plt.ylabel('Movement (0: Down, 1: Up)')
 plt.legend()
 plt.show()
 
