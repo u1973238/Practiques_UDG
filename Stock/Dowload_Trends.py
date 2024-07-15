@@ -17,11 +17,11 @@ def fetch_google_trends_data(keyword, start_date, end_date):
         try:
             trends_data = pytrends.interest_over_time()
             if trends_data.empty:
-                print("Google Trends data is empty, retrying in 20 seconds...")
-                time.sleep(20)
+                print("Google Trends data is empty, retrying in 60 seconds...")
+                time.sleep(60)
         except Exception as e:
-            print(f"Error: {e}, retrying in 20 seconds...")
-            time.sleep(20)
+            print(f"Error: {e}, retrying in 60 seconds...")
+            time.sleep(60)
     return trends_data[[keyword]]
 
 # List of keywords to fetch Google Trends data for
