@@ -30,22 +30,6 @@ def save_to_excel(df, file_path):
     except Exception as e:
         print(f"Error guardant el fitxer: {e}")
 
-# Rutes als fitxers CSV
-files = {
-    'or': 'preu_or.csv',
-    'gasNatural': 'preu_gasNatural.csv',
-    'petroliBrent': 'preu_petroliBrent.csv',
-    'petroliCru': 'preu_petroliCru.csv',
-    'plata': 'preu_plata.csv'
-}
-
-# Processar cada fitxer
-data_frames = {}
-for key, file in files.items():
-    df = read_and_preprocess_csv(file)
-    save_to_excel(df, f'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/{key}_filtrat.xlsx')
-    data_frames[key] = df
-
 # Funció per obtenir dades de Google Trends
 def fetch_google_trends_data(keyword, start_date, end_date):
     pytrends = TrendReq(hl='en-US', tz=360)
@@ -62,10 +46,27 @@ def fetch_google_trends_data(keyword, start_date, end_date):
             time.sleep(60)
     return trends_data[keyword]
 
+# Rutes als fitxers CSV
+files = {
+    'or': 'preu_or.csv',
+    'gasNatural': 'preu_gasNatural.csv',
+    'petroliBrent': 'preu_petroliBrent.csv',
+    'petroliCru': 'preu_petroliCru.csv',
+    'plata': 'preu_plata.csv'
+}
+
+# Processar cada fitxer
+data_frames = {}
+for key, file in files.items():
+    df = read_and_preprocess_csv(file)
+    save_to_excel(df, f'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/{key}_filtrat.xlsx')
+    data_frames[key] = df
+
+
 # Descarregar dades històriques de la borsa
 stock_symbol = 'AAPL'
-start_date = '2020-01-01'
-end_date = '2024-01-01'
+start_date = '2024-04-16'
+end_date = '2024-07-16'
 
 try:
     data = yf.download(stock_symbol, start=start_date, end=end_date)
