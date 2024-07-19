@@ -1,4 +1,7 @@
-################################################# IMPORTACI” LLIBRERIES #################################################
+'''
+codi sense google trends perqu√® no funciona 
+'''
+################################################# IMPORTACI√ì LLIBRERIES #################################################
 #########################################################################################################################
 
 import pandas as pd
@@ -10,23 +13,24 @@ from keras.layers import LSTM, Dense
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 
+
 ################################################# FUNCIONS #################################################
 ############################################################################################################
 
-# FunciÛ per llegir i processar dades dels fitxers CSV
+# Funci√≥ per llegir i processar dades dels fitxers CSV
 def read_and_preprocess_csv(file_path):
     df = pd.read_csv(file_path, parse_dates=['Fecha'])
-    columns_of_interest = ["Fecha", "⁄ltimo", "Apertura", "M·ximo", "MÌnimo", "Vol.", "% var."]
+    columns_of_interest = ["Fecha", "√öltimo", "Apertura", "M√°ximo", "M√≠nimo", "Vol.", "% var."]
     
-    # Convertir les columnes numËriques a format numËric, manejant errors
+    # Convertir les columnes num√®riques a format num√®ric, manejant errors
     for col in columns_of_interest:
         if col != "Fecha" and col != "Vol.":
             df[col] = pd.to_numeric(df[col].str.replace('.', '').str.replace(',', '.'), errors='coerce')
             mean_value = df[col].mean(skipna=True)
-            df[col] = df[col].fillna(mean_value)
+            df[col] = df[col].fillna(mean_value)  # Canvi per evitar FutureWarning
     return df
 
-# FunciÛ per guardar el dataframe (del fitxer CSV) en un fitxer Excel
+# Funci√≥ per guardar el dataframe (del fitxer CSV) en un fitxer Excel
 def save_to_excel(df, file_path):
     try:
         df.to_excel(file_path, index=False, engine='openpyxl')
@@ -34,15 +38,16 @@ def save_to_excel(df, file_path):
     except Exception as e:
         print(f"Error guardant el fitxer: {e}")
 
-# FunciÛ per crear dades d'entrada per LSTM
-def create_lstm_data(stock_data, trends_data, labels, time_steps=10):
+# Funci√≥ per crear dades d'entrada per LSTM
+def create_lstm_data(stock_data, other_data, labels, time_steps=10):
     x, y = [], []
     for i in range(len(stock_data) - time_steps):
-        x.append(np.hstack((stock_data[i:(i + time_steps)], trends_data[i:(i + time_steps)])))
+        x.append(np.hstack((stock_data[i:(i + time_steps)], other_data[i:(i + time_steps)])))
         y.append(labels[i + time_steps])
     return np.array(x), np.array(y)
 
-############################################ OBTENCI” DE DADES ############################################
+
+############################################ OBTENCI√ì DE DADES ############################################
 ###########################################################################################################
 
 # Rutes als fitxers CSV
@@ -61,7 +66,7 @@ for key, file in files.items():
     save_to_excel(df, f'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/{key}_filtrat.xlsx')
     data_frames[key] = df
 
-# Descarregar dades histÚriques de la borsa
+# Descarregar dades hist√≤riques de la borsa
 stock_symbol = 'BTC'
 start_date = '2024-04-16'
 end_date = '2024-07-16'
@@ -72,62 +77,53 @@ try:
         raise ValueError(f"No data found for symbol {stock_symbol}.")
 except Exception as e:
     print(f"Error downloading data: {e}")
-    # AquÌ pots carregar un fitxer local com a alternativa
+    # Aqu√≠ pots carregar un fitxer local com a alternativa
     data = pd.read_csv('path_to_local_file.csv', parse_dates=['Date'], index_col='Date')
 
-# Assegurar-se que l'Ìndex Ès de tipus DatetimeIndex
+# Assegurar-se que l'√≠ndex √©s de tipus DatetimeIndex
 if not isinstance(data.index, pd.DatetimeIndex):
     data.index = pd.to_datetime(data.index)
 
-# Re-samplar dades de la borsa a freq¸Ëncia setmanal
+# Re-samplar dades de la borsa a freq√º√®ncia setmanal
 data = data.resample('W').last()
 
-# Llegir les dades de Google Trends des del fitxer CSV
-trends_data = pd.read_csv('google_trends.csv', parse_dates=['date'], index_col='date')
-keyword = 'bitcoin'  # Assegura't que la columna al fitxer CSV es diu 'bitcoin'
-
-# Comprovar i registrar si les dades de tendËncies sÛn buides
-if trends_data.empty:
-    raise ValueError(f"Google Trends data for keyword '{keyword}' is empty.")
-
-# Fusionar dades de la borsa amb dades de tendËncies
-data = data.merge(trends_data[[keyword]], left_index=True, right_index=True, how='left')
-
+# Fusionar dades de la borsa amb dades dels fitxers CSV
 for key, df in data_frames.items():
     df.set_index('Fecha', inplace=True)
-    data = data.merge(df[['⁄ltimo']], left_index=True, right_index=True, how='left', suffixes=('', f'_{key}'))
+    data = data.merge(df[['√öltimo']], left_index=True, right_index=True, how='left', suffixes=('', f'_{key}'))
+    print(f"Columnes despr√©s de fusionar {key}:", data.columns)
+    print(data.head())
 
 ############################################ PRE-PROCESSAT DE DADES ############################################
 ################################################################################################################
 
 # Preprocessament de dades
-close_prices = data['Close'].values.reshape(-1, 1)  # preu de tancament --> variable que volem predir (y)
-google_trends = data[keyword].values.reshape(-1, 1)
-or_prices = data['⁄ltimo_or'].values.reshape(-1, 1)
-gas_prices = data['⁄ltimo_gasNatural'].values.reshape(-1, 1)
-petroliBrent_prices = data['⁄ltimo_petroliBrent'].values.reshape(-1, 1)
-petroliCru_prices = data['⁄ltimo_petroliCru'].values.reshape(-1, 1)
-plata_prices = data['⁄ltimo_plata'].values.reshape(-1, 1)
+close_prices = data['Close'].values.reshape(-1, 1) # Preu de tancament --> variable que volem predir (y)
+other_data = np.hstack([
+    data[f'√öltimo_{key}'].values.reshape(-1, 1) for key in files.keys()
+])
 
-scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(7)]
-scaled_data = [scaler.fit_transform(data) for scaler, data in zip(scalers, [close_prices, google_trends, or_prices, gas_prices, petroliBrent_prices, petroliCru_prices, plata_prices])]
+scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(1 + len(files))]
+scaled_data = [scalers[0].fit_transform(close_prices)] + [scaler.fit_transform(d.reshape(-1, 1)) for scaler, d in zip(scalers[1:], other_data.T)]
 
-close_prices_scaled, google_trends_scaled, or_prices_scaled, gas_prices_scaled, petroliBrent_prices_scaled, petroliCru_prices_scaled, plata_prices_scaled = scaled_data
+close_prices_scaled = scaled_data[0]
+other_data_scaled = np.hstack(scaled_data[1:])
 
 # Crear etiquetes per amunt (1) o avall (0)
-data['Target'] = np.where(data['Close'].shift(-1) > data['Close'], 1, 0)  # el desplaÁament permet comparar els preus de tancament del dia actual amb els preus de tancament del dia seg¸ent
+data['Target'] = np.where(data['Close'].shift(-1) > data['Close'], 1, 0) # El despla√ßament permet comparar els preus de tancament del dia actual amb els preus de tancament del dia seg√ºent
 labels = data['Target'].values[:-1]
 
-# Eliminem l'˙ltim valor per alinear-lo amb les etiquetes.
+# Eliminem l'√∫ltim valor per alinear-lo amb les etiquetes.
 scaled_data = [d[:-1] for d in scaled_data]
+
 
 ############################################ CREEM L'LSTM ############################################
 ######################################################################################################
 
 # Crear les dades d'entrada per al model LSTM
 time_steps = 10
-x, y = create_lstm_data(*scaled_data, labels=labels, time_steps=time_steps)
-x = np.reshape(x, (x.shape[0], x.shape[1], len(scaled_data)))
+x, y = create_lstm_data(close_prices_scaled, other_data_scaled, labels=labels, time_steps=time_steps)
+x = np.reshape(x, (x.shape[0], x.shape[1], x.shape[2]))
 
 # Dividir les dades en conjunts d'entrenament i prova
 train_size = int(len(x) * 0.8)
@@ -135,12 +131,12 @@ test_size = len(x) - train_size
 x_train, x_test = x[0:train_size], x[train_size:len(x)]
 y_train, y_test = y[0:train_size], y[train_size:len(y)]
 
-# DistribuciÛ de classes equilibrada en el conjunt d'entrenament
+# Distribuci√≥ de classes equilibrada en el conjunt d'entrenament
 class_weight = {0: 1.0, 1: sum(y_train == 0) / sum(y_train == 1)}
 
 # Construir el model LSTM
 model = Sequential()
-model.add(LSTM(units=100, return_sequences=True, input_shape=(time_steps, len(scaled_data))))
+model.add(LSTM(units=100, return_sequences=True, input_shape=(time_steps, x.shape[2])))
 model.add(LSTM(units=50))
 model.add(Dense(units=1, activation='sigmoid'))
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
@@ -155,5 +151,21 @@ predictions = np.where(predictions > 0.5, 1, 0)
 # Avaluar el model
 print("Confusion Matrix:")
 print(confusion_matrix(y_test, predictions))
-print("
+print("Classification Report:")
+print(classification_report(y_test, predictions))
+print("Accuracy Score:")
+print(accuracy_score(y_test, predictions))
+
+# Representaci√≥ gr√†fica dels resultats
+plt.figure(figsize=(14, 5))
+plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(y_test)], y_test, color='blue', label='Actual Direction')
+plt.plot(data.index[train_size + time_steps: train_size + time_steps + len(predictions)], predictions, color='red', label='Predicted Direction')
+plt.title('Stock Price Movement Prediction without Google Trends')
+plt.xlabel('Date')
+plt.ylabel('Movement (0: Down, 1: Up)')
+plt.legend()
+plt.show()
+
+
+
 

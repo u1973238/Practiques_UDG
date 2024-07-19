@@ -10,8 +10,8 @@ pytrends = TrendReq(hl='ca', tz=360)
 keyword = "cryptocurrency"
 
 # Data d'inici i finalització per a l'últim any
-start_date = '2024-04-01'
-end_date = '2024-07-01'
+start_date = '2024-04-16'
+end_date = '2024-07-16'
 
 # Generem una llista de dates setmanals
 dates = pd.date_range(start=start_date, end=end_date, freq='W-MON')
