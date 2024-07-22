@@ -83,12 +83,11 @@ if not isinstance(data.index, pd.DatetimeIndex):
 data = data.resample('W').last()
 
 # Llegir les dades de Google Trends des del fitxer CSV
-trends_data = pd.read_csv('google_trends.csv', parse_dates=['date'], index_col='date')
-keyword = 'bitcoin'  # Assegura't que la columna al fitxer CSV es diu 'bitcoin'
+trends_apple = pd.read_csv('trends_apple.csv', parse_dates=['Dia'], index_col='Dia')
+trends_bitcoin = pd.read_csv('trends_bitcoin.csv', parse_dates=['Dia'], index_col='Dia')
+trends_criptomoneda = pd.read_csv('trends_criptomoneda.csv', parse_dates=['Dia'], index_col='Dia')
 
-# Comprovar i registrar si les dades de tendències són buides
-if trends_data.empty:
-    raise ValueError(f"Google Trends data for keyword '{keyword}' is empty.")
+
 
 # Fusionar dades de la borsa amb dades de tendències
 data = data.merge(trends_data[[keyword]], left_index=True, right_index=True, how='left')
