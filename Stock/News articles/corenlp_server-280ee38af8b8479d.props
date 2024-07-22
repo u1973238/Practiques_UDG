@@ -1,0 +1,4 @@
+annotators = sentiment
+
+outputFormat = serialized
+
