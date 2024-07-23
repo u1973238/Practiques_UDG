@@ -4,8 +4,8 @@ import requests
 
 # Make the GET request
 url = ('https://api.worldnewsapi.com/top-news?api-key=a4efeedf68784748b1e17ed52dfcd954&source-country=us&language=en&topic=economic&date=2024-06-15')
-#https://webz.io/filterWebContent?token=a4efeedf68784748b1e17ed52dfcd954&format=json&q=ipod
-#       https://api.webz.io/addSourceRequest?domain_type=news_and_blogs&token=xxxxx-xxxx-xxxxx&list_name=agur_test123&domains=cnn.com,ynet.co.il
+#https://newsapi.org/v2/everything?q=apple&from=2024-07-21&to=2024-07-21&sortBy=popularity&apiKey=b8caede577fe4225bd795bc19afbd226
+
 response = requests.get(url)
 data = response.json()
 

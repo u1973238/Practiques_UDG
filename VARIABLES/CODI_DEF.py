@@ -154,5 +154,4 @@ predictions = np.where(predictions > 0.5, 1, 0)
 # Avaluar el model
 print("Confusion Matrix:")
 print(confusion_matrix(y_test, predictions))
-print("
 

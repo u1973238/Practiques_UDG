@@ -12,8 +12,11 @@ start_date = '2023-07-01'
 end_date = '2024-07-01'
 data = yf.download(stock_symbol, start=start_date, end=end_date)
 
+# Creating the target column
+data['target'] = data['Close'].shift(-1) - data['Close']
+
 # Data Preprocessing
-close_prices = data['Close'].values.reshape(-1, 1)
+close_prices = data['target'].values.reshape(-1, 1)
 scaler = MinMaxScaler(feature_range=(0, 1))
 close_prices_scaled = scaler.fit_transform(close_prices)
 
