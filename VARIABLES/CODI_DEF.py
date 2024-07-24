@@ -1,6 +1,3 @@
-################################################# IMPORTACIÓ LLIBRERIES #################################################
-#########################################################################################################################
-
 import pandas as pd
 import yfinance as yf
 import numpy as np
@@ -10,20 +7,9 @@ from keras.layers import LSTM, Dense
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 
-################################################# FUNCIONS #################################################
-############################################################################################################
-
 # Funció per llegir i processar dades dels fitxers CSV
 def read_and_preprocess_csv(file_path):
     df = pd.read_csv(file_path, parse_dates=['Fecha'])
-    columns_of_interest = ["Fecha", "Último", "Apertura", "Máximo", "Mínimo", "Vol.", "% var."]
-    
-    # Convertir les columnes numèriques a format numèric, manejant errors
-    for col in columns_of_interest:
-        if col != "Fecha" and col != "Vol.":
-            df[col] = pd.to_numeric(df[col].str.replace('.', '').str.replace(',', '.'), errors='coerce')
-            mean_value = df[col].mean(skipna=True)
-            df[col] = df[col].fillna(mean_value)
     return df
 
 # Funció per guardar el dataframe (del fitxer CSV) en un fitxer Excel
@@ -38,12 +24,16 @@ def save_to_excel(df, file_path):
 def create_lstm_data(stock_data, trends_data, labels, time_steps=10):
     x, y = [], []
     for i in range(len(stock_data) - time_steps):
-        x.append(np.hstack((stock_data[i:(i + time_steps)], trends_data[i:(i + time_steps)])))
-        y.append(labels[i + time_steps])
+        if i + time_steps < len(labels):  # Comprovar que l'índex no excedeixi les dimensions
+            x.append(np.hstack([stock_data[i:(i + time_steps)], trends_data[i:(i + time_steps)]]))
+            y.append(labels[i + time_steps])
     return np.array(x), np.array(y)
 
-############################################ OBTENCIÓ DE DADES ############################################
-###########################################################################################################
+# Reemplaçar comas i punts en les columnes
+def clean_column(column):
+    column = column.str.replace('.', '', regex=False)  # Eliminar punts que separen milers
+    column = column.str.replace(',', '.', regex=False)  # Substituir comes que separen decimals per punts
+    return pd.to_numeric(column, errors='coerce')  # Convertir a float
 
 # Rutes als fitxers CSV
 files = {
@@ -58,11 +48,12 @@ files = {
 data_frames = {}
 for key, file in files.items():
     df = read_and_preprocess_csv(file)
+    df['Último'] = clean_column(df['Último'])
     save_to_excel(df, f'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/{key}_filtrat.xlsx')
     data_frames[key] = df
 
 # Descarregar dades històriques de la borsa
-stock_symbol = 'BTC'
+stock_symbol = 'BTC-USD'
 start_date = '2024-04-16'
 end_date = '2024-07-16'
 
@@ -79,53 +70,59 @@ except Exception as e:
 if not isinstance(data.index, pd.DatetimeIndex):
     data.index = pd.to_datetime(data.index)
 
-# Re-samplar dades de la borsa a freqüència setmanal
-data = data.resample('W').last()
+# Re-samplar dades de la borsa a freqüència diària
+data = data.resample('D').ffill()
 
 # Llegir les dades de Google Trends des del fitxer CSV
 trends_apple = pd.read_csv('trends_apple.csv', parse_dates=['Dia'], index_col='Dia')
 trends_bitcoin = pd.read_csv('trends_bitcoin.csv', parse_dates=['Dia'], index_col='Dia')
 trends_criptomoneda = pd.read_csv('trends_criptomoneda.csv', parse_dates=['Dia'], index_col='Dia')
 
-
-
 # Fusionar dades de la borsa amb dades de tendències
-data = data.merge(trends_data[[keyword]], left_index=True, right_index=True, how='left')
+data = data.merge(trends_apple, left_index=True, right_index=True, how='left', suffixes=('', '_apple'))
+data = data.merge(trends_bitcoin, left_index=True, right_index=True, how='left', suffixes=('', '_bitcoin'))
+data = data.merge(trends_criptomoneda, left_index=True, right_index=True, how='left', suffixes=('', '_criptomoneda'))
 
+# Fusionar dades dels preus de mercats amb el dataframe principal
 for key, df in data_frames.items():
-    df.set_index('Fecha', inplace=True)
-    data = data.merge(df[['Último']], left_index=True, right_index=True, how='left', suffixes=('', f'_{key}'))
+    df.set_index('Fecha', inplace=True)  # Assegura't que l'índex és la data
+    df.rename(columns={'Último': f'Último_{key}'}, inplace=True)  # Renombra la columna 'Último'
+    data = data.merge(df[[f'Último_{key}']], left_index=True, right_index=True, how='left')
 
-############################################ PRE-PROCESSAT DE DADES ############################################
-################################################################################################################
+# Eliminem els valors buits (borsa tancada --> dades que no ens serveixen per a res)
+data = data.dropna()
 
 # Preprocessament de dades
 close_prices = data['Close'].values.reshape(-1, 1)  # preu de tancament --> variable que volem predir (y)
-google_trends = data[keyword].values.reshape(-1, 1)
+apple_trends = data['Apple'].values.reshape(-1, 1)
+bitcoin_trends = data['Bitcoin'].values.reshape(-1, 1)
+criptomoneda_trends = data['Criptomoneda'].values.reshape(-1, 1)
 or_prices = data['Último_or'].values.reshape(-1, 1)
 gas_prices = data['Último_gasNatural'].values.reshape(-1, 1)
 petroliBrent_prices = data['Último_petroliBrent'].values.reshape(-1, 1)
 petroliCru_prices = data['Último_petroliCru'].values.reshape(-1, 1)
 plata_prices = data['Último_plata'].values.reshape(-1, 1)
 
-scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(7)]
-scaled_data = [scaler.fit_transform(data) for scaler, data in zip(scalers, [close_prices, google_trends, or_prices, gas_prices, petroliBrent_prices, petroliCru_prices, plata_prices])]
+scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(9)]
+scaled_data = [scaler.fit_transform(d) for scaler, d in zip(scalers, [close_prices, apple_trends, bitcoin_trends, criptomoneda_trends, or_prices, gas_prices, petroliBrent_prices, petroliCru_prices, plata_prices])]
 
-close_prices_scaled, google_trends_scaled, or_prices_scaled, gas_prices_scaled, petroliBrent_prices_scaled, petroliCru_prices_scaled, plata_prices_scaled = scaled_data
+close_prices_scaled, apple_trends_scaled, bitcoin_trends_scaled, criptomoneda_trends_scaled, or_prices_scaled, gas_prices_scaled, petroliBrent_prices_scaled, petroliCru_prices_scaled, plata_prices_scaled = scaled_data
 
 # Crear etiquetes per amunt (1) o avall (0)
 data['Target'] = np.where(data['Close'].shift(-1) > data['Close'], 1, 0)  # el desplaçament permet comparar els preus de tancament del dia actual amb els preus de tancament del dia següent
 labels = data['Target'].values[:-1]
 
-# Eliminem l'últim valor per alinear-lo amb les etiquetes.
+# Eliminem l'últim valor per alinear-lo amb les etiquetes
 scaled_data = [d[:-1] for d in scaled_data]
-
-############################################ CREEM L'LSTM ############################################
-######################################################################################################
 
 # Crear les dades d'entrada per al model LSTM
 time_steps = 10
-x, y = create_lstm_data(*scaled_data, labels=labels, time_steps=time_steps)
+x, y = create_lstm_data(
+    stock_data=close_prices_scaled,
+    trends_data=apple_trends_scaled,  # Utilitza les dades de tendències correctes aquí
+    labels=labels,
+    time_steps=time_steps
+)
 x = np.reshape(x, (x.shape[0], x.shape[1], len(scaled_data)))
 
 # Dividir les dades en conjunts d'entrenament i prova
@@ -134,18 +131,21 @@ test_size = len(x) - train_size
 x_train, x_test = x[0:train_size], x[train_size:len(x)]
 y_train, y_test = y[0:train_size], y[train_size:len(y)]
 
-# Distribució de classes equilibrada en el conjunt d'entrenament
-class_weight = {0: 1.0, 1: sum(y_train == 0) / sum(y_train == 1)}
+# Comprovar la distribució de les classes i evitar la divisió per zero
+class_weights = None
+if len(np.unique(y_train)) == 2:  # Si hi ha dues classes
+    class_weight = {0: 1.0, 1: sum(y_train == 0) / sum(y_train == 1)}
+    class_weights = class_weight
 
 # Construir el model LSTM
 model = Sequential()
-model.add(LSTM(units=100, return_sequences=True, input_shape=(time_steps, len(scaled_data))))
+model.add(LSTM(units=100, return_sequences=True, input_shape=(time_steps, x.shape[2])))
 model.add(LSTM(units=50))
 model.add(Dense(units=1, activation='sigmoid'))
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
 # Entrenar el model
-model.fit(x_train, y_train, epochs=100, batch_size=32, class_weight=class_weight)
+model.fit(x_train, y_train, epochs=100, batch_size=32, class_weight=class_weights)
 
 # Predir amb les dades de prova
 predictions = model.predict(x_test)
@@ -154,4 +154,22 @@ predictions = np.where(predictions > 0.5, 1, 0)
 # Avaluar el model
 print("Confusion Matrix:")
 print(confusion_matrix(y_test, predictions))
+print("Classification Report:")
+print(classification_report(y_test, predictions))
+print("Accuracy Score:")
+print(accuracy_score(y_test, predictions))
+
+# Opcional: Visualitzar les prediccions
+plt.figure(figsize=(12, 6))
+plt.plot(y_test, color='blue', label='Real')
+plt.plot(predictions, color='red', linestyle='--', label='Predicció')
+plt.title('Real vs Predicció')
+plt.xlabel('Temps')
+plt.ylabel('Target')
+plt.legend()
+plt.show()
+
+
+
+
 
