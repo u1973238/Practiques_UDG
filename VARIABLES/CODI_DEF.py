@@ -21,12 +21,11 @@ def save_to_excel(df, file_path):
         print(f"Error guardant el fitxer: {e}")
 
 # Funció per crear dades d'entrada per LSTM
-def create_lstm_data(stock_data, trends_data, labels, time_steps=10):
+def create_lstm_data(stock_data, labels, time_steps=10):
     x, y = [], []
     for i in range(len(stock_data) - time_steps):
-        if i + time_steps < len(labels):  # Comprovar que l'índex no excedeixi les dimensions
-            x.append(np.hstack([stock_data[i:(i + time_steps)], trends_data[i:(i + time_steps)]]))
-            y.append(labels[i + time_steps])
+        x.append(stock_data[i:(i + time_steps)])
+        y.append(labels[i + time_steps])
     return np.array(x), np.array(y)
 
 # Reemplaçar comas i punts en les columnes
@@ -103,10 +102,27 @@ petroliBrent_prices = data['Último_petroliBrent'].values.reshape(-1, 1)
 petroliCru_prices = data['Último_petroliCru'].values.reshape(-1, 1)
 plata_prices = data['Último_plata'].values.reshape(-1, 1)
 
+# Escalar les dades
 scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(9)]
 scaled_data = [scaler.fit_transform(d) for scaler, d in zip(scalers, [close_prices, apple_trends, bitcoin_trends, criptomoneda_trends, or_prices, gas_prices, petroliBrent_prices, petroliCru_prices, plata_prices])]
 
-close_prices_scaled, apple_trends_scaled, bitcoin_trends_scaled, criptomoneda_trends_scaled, or_prices_scaled, gas_prices_scaled, petroliBrent_prices_scaled, petroliCru_prices_scaled, plata_prices_scaled = scaled_data
+# Crear diccionari de les dades escalades
+taula_data = {
+    'close_prices_scaled': scaled_data[0].flatten(),
+    'apple_trends_scaled': scaled_data[1].flatten(), 
+    'bitcoin_trends_scaled': scaled_data[2].flatten(), 
+    'criptomoneda_trends_scaled': scaled_data[3].flatten(), 
+    'or_prices_scaled': scaled_data[4].flatten(), 
+    'gas_prices_scaled': scaled_data[5].flatten(), 
+    'petroliBrent_prices_scaled': scaled_data[6].flatten(), 
+    'petroliCru_prices_scaled': scaled_data[7].flatten(), 
+    'plata_prices_scaled': scaled_data[8].flatten()
+}
+
+# Convertir el diccionari en un DataFrame
+scaled_data_df = pd.DataFrame(taula_data)
+
+print(scaled_data_df)
 
 # Crear etiquetes per amunt (1) o avall (0)
 data['Target'] = np.where(data['Close'].shift(-1) > data['Close'], 1, 0)  # el desplaçament permet comparar els preus de tancament del dia actual amb els preus de tancament del dia següent
@@ -115,15 +131,17 @@ labels = data['Target'].values[:-1]
 # Eliminem l'últim valor per alinear-lo amb les etiquetes
 scaled_data = [d[:-1] for d in scaled_data]
 
+# Combinar dades d'entrada
+combined_data = np.hstack(scaled_data)
+
 # Crear les dades d'entrada per al model LSTM
 time_steps = 10
 x, y = create_lstm_data(
-    stock_data=close_prices_scaled,
-    trends_data=apple_trends_scaled,  # Utilitza les dades de tendències correctes aquí
+    stock_data=combined_data,
     labels=labels,
     time_steps=time_steps
 )
-x = np.reshape(x, (x.shape[0], x.shape[1], len(scaled_data)))
+x = np.reshape(x, (x.shape[0], x.shape[1], combined_data.shape[1]))
 
 # Dividir les dades en conjunts d'entrenament i prova
 train_size = int(len(x) * 0.8)
@@ -133,9 +151,9 @@ y_train, y_test = y[0:train_size], y[train_size:len(y)]
 
 # Comprovar la distribució de les classes i evitar la divisió per zero
 class_weights = None
-if len(np.unique(y_train)) == 2:  # Si hi ha dues classes
-    class_weight = {0: 1.0, 1: sum(y_train == 0) / sum(y_train == 1)}
-    class_weights = class_weight
+class_counts = np.bincount(y_train)
+if len(class_counts) == 2 and min(class_counts) > 0:  # Si hi ha dues classes
+    class_weights = {0: class_counts[1] / len(y_train), 1: class_counts[0] / len(y_train)}
 
 # Construir el model LSTM
 model = Sequential()
@@ -145,7 +163,7 @@ model.add(Dense(units=1, activation='sigmoid'))
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
 # Entrenar el model
-model.fit(x_train, y_train, epochs=100, batch_size=32, class_weight=class_weights)
+history = model.fit(x_train, y_train, epochs=100, batch_size=32, class_weight=class_weights, validation_split=0.2, verbose=1)
 
 # Predir amb les dades de prova
 predictions = model.predict(x_test)
@@ -166,6 +184,16 @@ plt.plot(predictions, color='red', linestyle='--', label='Predicció')
 plt.title('Real vs Predicció')
 plt.xlabel('Temps')
 plt.ylabel('Target')
+plt.legend()
+plt.show()
+
+# Opcional: Visualitzar l'historial d'entrenament
+plt.figure(figsize=(12, 6))
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Accuracy durant l\'entrenament')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
 plt.legend()
 plt.show()
 
