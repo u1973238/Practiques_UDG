@@ -1,5 +1,16 @@
-import stanza
-nlp = stanza.Pipeline(lang='en', processors='tokenize,sentiment')
-doc = nlp('I hate that they banned Mox Opal. i love my mom')
-for i, sentence in enumerate(doc.sentences):
-    print("%d -> %d" % (i, sentence.sentiment))
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("")
+
+df.head()
+
+'''
+del df['Unnamed_ 0']
+df.head()
+'''
+
+df.corr(method="pearson")
+df.corr()
+
+plt.matshow(df.corr())
