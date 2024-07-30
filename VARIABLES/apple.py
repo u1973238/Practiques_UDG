@@ -88,7 +88,7 @@ data = data.resample('W').last()
 # Fusionar dades de la borsa amb dades dels fitxers CSV
 for key, df in data_frames.items():
     df.set_index('Fecha', inplace=True)
-    #data = data.merge(df[['Último']], left_index=True, right_index=True, how='left', suffixes=('', f'_{key}'))
+    data = data.merge(df[['Último']], left_index=True, right_index=True, how='left', suffixes=('', f'_{key}'))
 
 ############################################ PRE-PROCESSAT DE DADES ############################################
 ################################################################################################################
@@ -117,7 +117,7 @@ scaled_data = [d[:-1] for d in scaled_data]
 
 # Crear les dades d'entrada per al model LSTM
 time_steps = 10
-x, y = create_lstm_data(close_prices_scaled, labels=labels, time_steps=time_steps)
+x, y = create_lstm_data(close_prices_scaled, other_data_scaled, labels=labels, time_steps=time_steps)
 x = np.reshape(x, (x.shape[0], x.shape[1], x.shape[2]))
 
 # Dividir les dades en conjunts d'entrenament i prova
