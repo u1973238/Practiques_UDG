@@ -7,9 +7,6 @@ from keras.layers import LSTM, Dense
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 
-
-
-
 # Funció per llegir i processar dades dels fitxers CSV
 def read_and_preprocess_csv(file_path):
     df = pd.read_csv(file_path, parse_dates=['Fecha'])
@@ -91,23 +88,50 @@ for key, df in data_frames.items():
     df.rename(columns={'Último': f'Último_{key}'}, inplace=True)  # Renombra la columna 'Último'
     data = data.merge(df[[f'Último_{key}']], left_index=True, right_index=True, how='left')
 
-# Eliminem els valors buits (borsa tancada --> dades que no ens serveixen per a res)
+# Llegir el nou fitxer CSV i processar-lo
+new_file = 'Bitcoin_sentiment_summary.csv'
+new_data_df = read_and_preprocess_csv(new_file)
+new_data_df.set_index('Fecha', inplace=True)  # Assegura't que l'índex és la data
+data = data.merge(new_data_df, left_index=True, right_index=True, how='left')
+
+# Eliminem els valors buits
 data = data.dropna()
 
 # Preprocessament de dades
-close_prices = data['Close'].values.reshape(-1, 1)  # preu de tancament --> variable que volem predir (y)
-apple_trends = data['Apple'].values.reshape(-1, 1)
-bitcoin_trends = data['Bitcoin'].values.reshape(-1, 1)
-criptomoneda_trends = data['Criptomoneda'].values.reshape(-1, 1)
-or_prices = data['Último_or'].values.reshape(-1, 1)
-gas_prices = data['Último_gasNatural'].values.reshape(-1, 1)
-petroliBrent_prices = data['Último_petroliBrent'].values.reshape(-1, 1)
-petroliCru_prices = data['Último_petroliCru'].values.reshape(-1, 1)
-plata_prices = data['Último_plata'].values.reshape(-1, 1)
+try:
+    # Comprovació si les columnes existeixen abans de processar-les
+    columns = ['Close', 'Apple', 'Bitcoin', 'Criptomoneda', 'Último_or', 'Último_gasNatural', 'Último_petroliBrent', 'Último_petroliCru', 'Último_plata', 'Count_of_0', 'Count_of_1', 'Count_of_2']
+    for col in columns:
+        if col not in data.columns:
+            raise KeyError(f"Missing column in data: {col}")
+
+    close_prices = data['Close'].values.reshape(-1, 1)  # preu de tancament --> variable que volem predir (y)
+    apple_trends = data['Apple'].values.reshape(-1, 1)
+    bitcoin_trends = data['Bitcoin'].values.reshape(-1, 1)
+    criptomoneda_trends = data['Criptomoneda'].values.reshape(-1, 1)
+    or_prices = data['Último_or'].values.reshape(-1, 1)
+    gas_prices = data['Último_gasNatural'].values.reshape(-1, 1)
+    petroliBrent_prices = data['Último_petroliBrent'].values.reshape(-1, 1)
+    petroliCru_prices = data['Último_petroliCru'].values.reshape(-1, 1)
+    plata_prices = data['Último_plata'].values.reshape(-1, 1)
+
+    # Incloure les noves columnes del fitxer CSV afegit
+    Count_of_0 = data['Count_of_0'].values.reshape(-1, 1)
+    Count_of_1 = data['Count_of_1'].values.reshape(-1, 1)
+    Count_of_2 = data['Count_of_2'].values.reshape(-1, 1)
+except KeyError as e:
+    print(f"Missing column in data: {e}")
+    raise
+
+# Definir el nombre de pasos temporals
+time_steps = 10
 
 # Escalar les dades
-scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(9)]
-scaled_data = [scaler.fit_transform(d) for scaler, d in zip(scalers, [close_prices, apple_trends, bitcoin_trends, criptomoneda_trends, or_prices, gas_prices, petroliBrent_prices, petroliCru_prices, plata_prices])]
+scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(len(columns))]
+scaled_data = [scaler.fit_transform(d) for scaler, d in zip(scalers, [close_prices, apple_trends, bitcoin_trends, criptomoneda_trends, or_prices, gas_prices, petroliBrent_prices, petroliCru_prices, plata_prices, Count_of_0, Count_of_1, Count_of_2 ])]
+
+# Comprovar si la llista scaled_data té el nombre esperat d'elements
+print(f"Length of scaled_data: {len(scaled_data)}")
 
 # Crear diccionari de les dades escalades
 taula_data = {
@@ -119,7 +143,10 @@ taula_data = {
     'gas_prices_scaled': scaled_data[5].flatten(), 
     'petroliBrent_prices_scaled': scaled_data[6].flatten(), 
     'petroliCru_prices_scaled': scaled_data[7].flatten(), 
-    'plata_prices_scaled': scaled_data[8].flatten()
+    'plata_prices_scaled': scaled_data[8].flatten(),
+    'Count_of_0_scaled': scaled_data[9].flatten(),
+    'Count_of_1_scaled': scaled_data[10].flatten(),
+    'Count_of_2_scaled': scaled_data[11].flatten()
 }
 
 # Convertir el diccionari en un DataFrame
@@ -137,14 +164,21 @@ scaled_data = [d[:-1] for d in scaled_data]
 # Combinar dades d'entrada
 combined_data = np.hstack(scaled_data)
 
+# Comprovació de la llargada de les dades
+if len(labels) != len(combined_data) - time_steps:
+    print(f"Length mismatch: labels length {len(labels)}, combined data length {len(combined_data)}")
+    raise ValueError("The length of labels and combined data does not match.")
+
 # Crear les dades d'entrada per al model LSTM
-time_steps = 10
 x, y = create_lstm_data(
     stock_data=combined_data,
     labels=labels,
     time_steps=time_steps
 )
 x = np.reshape(x, (x.shape[0], x.shape[1], combined_data.shape[1]))
+
+# Comprovació de la longitud de x i y
+print(f"x shape: {x.shape}, y shape: {y.shape}")
 
 # Dividir les dades en conjunts d'entrenament i prova
 train_size = int(len(x) * 0.8)
@@ -189,9 +223,3 @@ plt.xlabel('Temps')
 plt.ylabel('Target')
 plt.legend()
 plt.show()
-
-
-
-
-
-
