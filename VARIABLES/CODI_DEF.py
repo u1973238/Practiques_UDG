@@ -93,9 +93,9 @@ data = data.dropna()
 
 # Preprocessament de dades
 close_prices = data['Close'].values.reshape(-1, 1)  # preu de tancament --> variable que volem predir (y)
-apple_trends = data['Apple'].values.reshape(-1, 1)
-bitcoin_trends = data['Bitcoin'].values.reshape(-1, 1)
-criptomoneda_trends = data['Criptomoneda'].values.reshape(-1, 1)
+apple_trends = data['apple: (Arreu del món)'].values.reshape(-1, 1)
+bitcoin_trends = data['bitcoin: (Arreu del món)'].values.reshape(-1, 1)
+criptomoneda_trends = data['Criptomoneda: (Arreu del món)'].values.reshape(-1, 1)
 or_prices = data['Último_or'].values.reshape(-1, 1)
 gas_prices = data['Último_gasNatural'].values.reshape(-1, 1)
 petroliCru_prices = data['Último_petroliCru'].values.reshape(-1, 1)

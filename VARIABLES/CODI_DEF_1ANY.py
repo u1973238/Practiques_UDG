@@ -129,6 +129,8 @@ taula_data_weekly = {
 # Convertir el diccionari en un DataFrame
 scaled_data_df_weekly = pd.DataFrame(taula_data_weekly)
 
+corr_mat = scaled_data_df_weekly.corr()
+
 # Crear etiquetes per amunt (1) o avall (0) amb dades setmanals
 data_weekly['Target'] = np.where(data_weekly['Close'].shift(-1) > data_weekly['Close'], 1, 0)
 labels_weekly = data_weekly['Target'].values[:-1]
