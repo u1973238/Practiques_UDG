@@ -4,7 +4,7 @@ import csv
 from googletrans import Translator
 import stanza
 
-url = ('https://newsapi.org/v2/everything?q=bitcoin&from=2024-08-01&to=2024-08-01&sortBy=popularity&apiKey=b8caede577fe4225bd795bc19afbd226')
+url = ('https://newsapi.org/v2/everything?q=bitcoin&from=2024-08-21&to=2024-08-21&sortBy=popularity&apiKey=b8caede577fe4225bd795bc19afbd226')
 
 # Send GET request to the News API
 response = requests.get(url)
@@ -12,7 +12,7 @@ data = response.json()
 
 articles = data['articles']
 
-file_path = '2024-08-01.csv'
+file_path = '2024-08-21.csv'
 
 # Define the CSV column headers
 headers = ['Title', 'Sentiment Score']
