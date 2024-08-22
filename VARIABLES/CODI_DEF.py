@@ -8,8 +8,6 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 import matplotlib.pyplot as plt
 
 
-
-
 # Funció per llegir i processar dades dels fitxers CSV
 def read_and_preprocess_csv(file_path):
     df = pd.read_csv(file_path, parse_dates=['Fecha'])
@@ -41,7 +39,6 @@ def clean_column(column):
 files = {
     'or': 'preu_or.csv',
     'gasNatural': 'preu_gasNatural.csv',
-    'petroliBrent': 'preu_petroliBrent.csv',
     'petroliCru': 'preu_petroliCru.csv',
     'plata': 'preu_plata.csv'
 }
@@ -56,8 +53,8 @@ for key, file in files.items():
 
 # Descarregar dades històriques de la borsa
 stock_symbol = 'BTC-USD'
-start_date = '2024-04-16'
-end_date = '2024-07-16'
+start_date = '2022-08-12'
+end_date = '2024-08-12'
 
 try:
     data = yf.download(stock_symbol, start=start_date, end=end_date)
@@ -96,18 +93,17 @@ data = data.dropna()
 
 # Preprocessament de dades
 close_prices = data['Close'].values.reshape(-1, 1)  # preu de tancament --> variable que volem predir (y)
-apple_trends = data['Apple'].values.reshape(-1, 1)
-bitcoin_trends = data['Bitcoin'].values.reshape(-1, 1)
-criptomoneda_trends = data['Criptomoneda'].values.reshape(-1, 1)
+apple_trends = data['apple: (Arreu del món)'].values.reshape(-1, 1)
+bitcoin_trends = data['bitcoin: (Arreu del món)'].values.reshape(-1, 1)
+criptomoneda_trends = data['Criptomoneda: (Arreu del món)'].values.reshape(-1, 1)
 or_prices = data['Último_or'].values.reshape(-1, 1)
 gas_prices = data['Último_gasNatural'].values.reshape(-1, 1)
-petroliBrent_prices = data['Último_petroliBrent'].values.reshape(-1, 1)
 petroliCru_prices = data['Último_petroliCru'].values.reshape(-1, 1)
 plata_prices = data['Último_plata'].values.reshape(-1, 1)
 
 # Escalar les dades
-scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(9)]
-scaled_data = [scaler.fit_transform(d) for scaler, d in zip(scalers, [close_prices, apple_trends, bitcoin_trends, criptomoneda_trends, or_prices, gas_prices, petroliBrent_prices, petroliCru_prices, plata_prices])]
+scalers = [MinMaxScaler(feature_range=(0, 1)) for _ in range(8)]
+scaled_data = [scaler.fit_transform(d) for scaler, d in zip(scalers, [close_prices, apple_trends, bitcoin_trends, criptomoneda_trends, or_prices, gas_prices, petroliCru_prices, plata_prices])]
 
 # Crear diccionari de les dades escalades
 taula_data = {
@@ -117,15 +113,16 @@ taula_data = {
     'criptomoneda_trends_scaled': scaled_data[3].flatten(), 
     'or_prices_scaled': scaled_data[4].flatten(), 
     'gas_prices_scaled': scaled_data[5].flatten(), 
-    'petroliBrent_prices_scaled': scaled_data[6].flatten(), 
-    'petroliCru_prices_scaled': scaled_data[7].flatten(), 
-    'plata_prices_scaled': scaled_data[8].flatten()
+    'petroliCru_prices_scaled': scaled_data[6].flatten(), 
+    'plata_prices_scaled': scaled_data[7].flatten()
 }
 
 # Convertir el diccionari en un DataFrame
 scaled_data_df = pd.DataFrame(taula_data)
 
 print(scaled_data_df)
+
+corr_mat = scaled_data_df.corr()
 
 # Crear etiquetes per amunt (1) o avall (0)
 data['Target'] = np.where(data['Close'].shift(-1) > data['Close'], 1, 0)  # el desplaçament permet comparar els preus de tancament del dia actual amb els preus de tancament del dia següent
@@ -189,7 +186,6 @@ plt.xlabel('Temps')
 plt.ylabel('Target')
 plt.legend()
 plt.show()
-
 
 
 
