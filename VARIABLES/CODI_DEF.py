@@ -53,8 +53,8 @@ for key, file in files.items():
 
 # Descarregar dades històriques de la borsa
 stock_symbol = 'BTC-USD'
-start_date = '2022-08-12'
-end_date = '2024-08-12'
+start_date = '2022-08-22'
+end_date = '2024-08-22'
 
 try:
     data = yf.download(stock_symbol, start=start_date, end=end_date)
