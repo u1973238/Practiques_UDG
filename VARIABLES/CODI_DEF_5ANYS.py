@@ -125,21 +125,26 @@ variables = {
     'bitcoin_trends': bitcoin_trends_weekly,
     'criptomoneda_trends': criptomoneda_trends_weekly,
     'or': or_prices_weekly,
-    'gas': gas_prices_weekly,
+    'gasNatural': gas_prices_weekly,
     'petroliCru': petroliCru_prices_weekly,
     'plata': plata_prices_weekly,
     'plati': plati_prices_weekly,
     'coure': coure_prices_weekly
 }
 
-for feature, data in variables.items():
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler.fit_transform(data)
-    scalers[feature] = scaler
-    data_scaled.append(scaled_data)
+for key, value in variables.items():
+    scaler = MinMaxScaler()
+    data_scaled.append(scaler.fit_transform(value))
+    scalers[key] = scaler
 
-# Concatenar totes les dades escalades
-data_scaled = np.concatenate(data_scaled, axis=1)
+# Convertim la llista a un array numpy per poder utilitzar-la
+data_scaled = np.hstack(data_scaled)
+
+# Crear un dataframe amb totes les dades escalades per a la matriu de correlació
+data_scaled_df = pd.DataFrame(data_scaled, columns=variables.keys())
+
+# Calcular la matriu de correlació
+corr_mat = data_scaled_df.corr()
 
 # Crear etiquetes binàries de moviments de preus (+1 si el preu setmanal va pujar, 0 si va baixar)
 price_diff = np.diff(close_prices_weekly, axis=0)  # Canvi en el preu setmanal
@@ -169,7 +174,7 @@ history = model.fit(X_train, y_train, epochs=50, batch_size=64, validation_split
 y_pred = model.predict(X_test)
 y_pred = (y_pred > 0.5).astype(int)  # Convertir probabilitats a etiquetes
 
-# Metrics de rendiment
+# Mètriques de rendiment
 print("Confusion Matrix:")
 print(confusion_matrix(y_test, y_pred))
 print("\nClassification Report:")
@@ -199,5 +204,4 @@ plt.ylabel('Accuracy')
 plt.legend()
 
 plt.tight_layout()
-plt.show()
-
+plt.show() 
