@@ -37,10 +37,12 @@ def clean_column(column):
 
 # Rutes als fitxers CSV
 files = {
-    'or': 'preu_or_1any.csv',
-    'gasNatural': 'preu_gasNatural_1any.csv',
-    'petroliCru': 'preu_petroliCru_1any.csv',
-    'plata': 'preu_plata_1any.csv'
+    'or': 'preu_or_5anys.csv',
+    'gasNatural': 'preu_gasNatural_5anys.csv',
+    'petroliCru': 'preu_petroliCru_5anys.csv',
+    'plata': 'preu_plata_5anys.csv',
+    'plati': 'preu_plati_5anys.csv',
+    'coure': 'preu_coure_5anys.csv'
 }
 
 # Processar cada fitxer
@@ -53,7 +55,7 @@ for key, file in files.items():
 
 # Descarregar dades històriques de la borsa
 stock_symbol = 'BTC-USD'
-start_date = '2023-08-22'
+start_date = '2019-08-22'
 end_date = '2024-08-22'
 
 try:
@@ -73,9 +75,9 @@ if not isinstance(data.index, pd.DatetimeIndex):
 data = data.resample('D').ffill()
 
 # Llegir les dades de Google Trends des del fitxer CSV
-trends_apple = pd.read_csv('trends_apple_1any.csv', parse_dates=['Setmana'], index_col='Setmana')
-trends_bitcoin = pd.read_csv('trends_bitcoin_1any.csv', parse_dates=['Setmana'], index_col='Setmana')
-trends_criptomoneda = pd.read_csv('trends_criptomoneda_1any.csv', parse_dates=['Setmana'], index_col='Setmana')
+trends_apple = pd.read_csv('trends_apple_5anys.csv', parse_dates=['Setmana'], index_col='Setmana')
+trends_bitcoin = pd.read_csv('trends_bitcoin_5anys.csv', parse_dates=['Setmana'], index_col='Setmana')
+trends_criptomoneda = pd.read_csv('trends_criptomoneda_5anys.csv', parse_dates=['Setmana'], index_col='Setmana')
 
 # Assegurar-se que l'índex de Google Trends és un DatetimeIndex abans de fusionar
 trends_apple.index = pd.to_datetime(trends_apple.index)
@@ -109,95 +111,97 @@ or_prices_weekly = data_weekly['Último_or'].values.reshape(-1, 1)
 gas_prices_weekly = data_weekly['Último_gasNatural'].values.reshape(-1, 1)
 petroliCru_prices_weekly = data_weekly['Último_petroliCru'].values.reshape(-1, 1)
 plata_prices_weekly = data_weekly['Último_plata'].values.reshape(-1, 1)
+plati_prices_weekly = data_weekly['Último_plati'].values.reshape(-1, 1)
+coure_prices_weekly = data_weekly['Último_coure'].values.reshape(-1, 1)
 
-# Escalar les dades setmanals
-scalers = [MinMaxScaler() for _ in range(8)]  # Crear un escalador per a cada conjunt de dades
-scaled_data_weekly = [scaler.fit_transform(d) for scaler, d in zip(scalers, [close_prices_weekly, apple_trends_weekly, bitcoin_trends_weekly, criptomoneda_trends_weekly, or_prices_weekly, gas_prices_weekly, petroliCru_prices_weekly, plata_prices_weekly])]
+# Escalar les dades setmanals entre 0 i 1
+scalers = {}
+data_scaled = []
 
-# Crear diccionari de les dades escalades setmanals
-taula_data_weekly = {
-    'close_prices_scaled': scaled_data_weekly[0].flatten(),
-    'apple_trends_scaled': scaled_data_weekly[1].flatten(), 
-    'bitcoin_trends_scaled': scaled_data_weekly[2].flatten(), 
-    'criptomoneda_trends_scaled': scaled_data_weekly[3].flatten(), 
-    'or_prices_scaled': scaled_data_weekly[4].flatten(), 
-    'gas_prices_scaled': scaled_data_weekly[5].flatten(), 
-    'petroliCru_prices_scaled': scaled_data_weekly[6].flatten(), 
-    'plata_prices_scaled': scaled_data_weekly[7].flatten()
+# Llista de variables escalades que sí existeixen
+variables = {
+    'Close': close_prices_weekly,
+    'apple_trends': apple_trends_weekly,
+    'bitcoin_trends': bitcoin_trends_weekly,
+    'criptomoneda_trends': criptomoneda_trends_weekly,
+    'or': or_prices_weekly,
+    'gasNatural': gas_prices_weekly,
+    'petroliCru': petroliCru_prices_weekly,
+    'plata': plata_prices_weekly,
+    'plati': plati_prices_weekly,
+    'coure': coure_prices_weekly
 }
 
-# Convertir el diccionari en un DataFrame
-scaled_data_df_weekly = pd.DataFrame(taula_data_weekly)
+for key, value in variables.items():
+    scaler = MinMaxScaler()
+    data_scaled.append(scaler.fit_transform(value))
+    scalers[key] = scaler
 
-# Calcular la matriu de correlació (opcional)
-corr_mat = scaled_data_df_weekly.corr()
+# Convertim la llista a un array numpy per poder utilitzar-la
+data_scaled = np.hstack(data_scaled)
 
-# Crear etiquetes per amunt (1) o avall (0) amb dades setmanals
-data_weekly['Target'] = np.where(data_weekly['Close'].shift(-1) > data_weekly['Close'], 1, 0)
-labels_weekly = data_weekly['Target'].values[:-1]
+# Crear un dataframe amb totes les dades escalades per a la matriu de correlació
+data_scaled_df = pd.DataFrame(data_scaled, columns=variables.keys())
 
-# Eliminem l'últim valor per alinear-lo amb les etiquetes
-scaled_data_weekly = [d[:-1] for d in scaled_data_weekly]
+# Calcular la matriu de correlació
+corr_mat = data_scaled_df.corr()
 
-# Combinar dades d'entrada setmanals
-combined_data_weekly = np.hstack(scaled_data_weekly)
-
-# Ajustar la finestra temporal a les setmanes
-time_steps_weekly = 4  # Exemple: utilitzar 4 setmanes per predir la següent
-
-# Crear les dades d'entrada per al model LSTM setmanal
-x_weekly, y_weekly = create_lstm_data(
-    stock_data=combined_data_weekly,
-    labels=labels_weekly,
-    time_steps=time_steps_weekly
-)
+# Crear etiquetes binàries de moviments de preus (+1 si el preu setmanal va pujar, 0 si va baixar)
+price_diff = np.diff(close_prices_weekly, axis=0)  # Canvi en el preu setmanal
+labels = (price_diff > 0).astype(int)  # 1 si puja, 0 si baixa
 
 # Dividir les dades en entrenament i prova
-x_train_weekly, x_test_weekly, y_train_weekly, y_test_weekly = train_test_split(
-    x_weekly, y_weekly, test_size=0.2, random_state=42
-)
+X, y = create_lstm_data(data_scaled[:-1], labels)  # Excloem l'últim per a y
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
-# Crear el model LSTM setmanal
+# Modificar l'arquitectura del model
 model = Sequential()
-model.add(LSTM(50, return_sequences=True, input_shape=(time_steps_weekly, combined_data_weekly.shape[1])))
+model.add(LSTM(units=64, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
+model.add(Dropout(0.2))  # Afegeixo més dropout per evitar sobreajustament
+model.add(LSTM(units=32, return_sequences=True))
 model.add(Dropout(0.2))
-model.add(LSTM(50))
+model.add(LSTM(units=16))
 model.add(Dropout(0.2))
-model.add(Dense(1, activation='sigmoid'))
+model.add(Dense(units=1, activation='sigmoid'))
+
+# Compilar el model
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-# Entrenar el model amb les dades d'entrenament
-history_weekly = model.fit(x_train_weekly, y_train_weekly, epochs=100, batch_size=32, validation_split=0.2, verbose=1)
-
-# Predir amb les dades de prova
-predictions_weekly = model.predict(x_test_weekly)
-predictions_weekly = np.where(predictions_weekly > 0.5, 1, 0)
+# Entrenar el model
+history = model.fit(X_train, y_train, epochs=50, batch_size=64, validation_split=0.2, verbose=1)
 
 # Avaluar el model
+y_pred = model.predict(X_test)
+y_pred = (y_pred > 0.5).astype(int)  # Convertir probabilitats a etiquetes
+
+# Mètriques de rendiment
 print("Confusion Matrix:")
-print(confusion_matrix(y_test_weekly, predictions_weekly))
-print("Classification Report:")
-print(classification_report(y_test_weekly, predictions_weekly))
-print("Accuracy Score:")
-print(accuracy_score(y_test_weekly, predictions_weekly))
+print(confusion_matrix(y_test, y_pred))
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+print("\nAccuracy Score:")
+print(accuracy_score(y_test, y_pred))
 
-# Graficar la precisió i pèrdua durant l'entrenament
-plt.figure(figsize=(12, 6))
+# Visualitzar l'històric de la pèrdua i l'exactitud
+plt.figure(figsize=(12, 5))
+
+# Pèrdua
 plt.subplot(1, 2, 1)
-plt.plot(history_weekly.history['accuracy'], label='Train Accuracy')
-plt.plot(history_weekly.history['val_accuracy'], label='Validation Accuracy')
-plt.title('Model Accuracy (Weekly)')
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.legend()
-
-plt.subplot(1, 2, 2)
-plt.plot(history_weekly.history['loss'], label='Train Loss')
-plt.plot(history_weekly.history['val_loss'], label='Validation Loss')
-plt.title('Model Loss (Weekly)')
-plt.xlabel('Epoch')
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Loss')
+plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
 
+# Exactitud
+plt.subplot(1, 2, 2)
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+
 plt.tight_layout()
-plt.show()
+plt.show() 
