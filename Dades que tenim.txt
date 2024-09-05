@@ -1,8 +1,0 @@
-Sentiment en les noticies (posar 3 columnas. N_negatius, N_positius, N_neures) - 3
-	-Podria se interesant no només mirà també la descrició
-Dades de stock - 6
-Dades diares de trents - 1
-Preu de l'or - 1
-Preu gas natural - 1
-	plata - 1
-	Pretroli  - 2
