@@ -35,4 +35,3 @@ with open(file_path, 'a', encoding='utf-8') as file:
         file.write(f"Title: {article['title']}\n")
         file.write(f"Published At: {article['publishedAt']}\n")
         file.write("\n")
-https://newsapi.org/v2/top-headlines?q=tesla&from=2024-06-10&sortBy=publishedAt&apiKey=b8caede577fe4225bd795bc19afbd226

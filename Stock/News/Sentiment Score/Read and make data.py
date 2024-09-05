@@ -2,7 +2,7 @@ import os
 import csv
 
 # Define the directory containing the CSV files
-input_directory = 'Bitcoin'  # Replace with your folder path
+input_directory = 'Bitcoin'  # Folder path
 output_file = 'Bitcoin_sentiment_summary.csv'
 
 # Initialize a list to store the summary data
@@ -13,7 +13,7 @@ for filename in os.listdir(input_directory):
     if filename.endswith('.csv'):
         file_path = os.path.join(input_directory, filename)
         
-        # Extract the date from the filename (assuming format 'YYYY-MM-DD.csv')
+        # Extract the date from the filename
         date = filename.split('.csv')[0]
         
         # Initialize counters for sentiment scores
@@ -46,3 +46,4 @@ with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
     writer.writerows(summary_data)
 
 print(f'Summary has been written to {output_file}')
+

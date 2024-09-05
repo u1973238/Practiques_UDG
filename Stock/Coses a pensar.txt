@@ -1,7 +1,0 @@
-LSTM - Descarrega la info de Yahoo i da un LSTM
-	-Diria que no prediu el preu del dia seguent, agafa les dades del dia i fa la predició
-
-Dowload_Trends - Descarrega i fa un csv amb les dades de Google trends i Yahoo
-	-Diria que ho fa bé, agafa i fa un target que es la variació de valor de l'estoc
-
-LSTM_Prova_multiTrends - Agafa el csv i fa les predicións de la variació de valors
