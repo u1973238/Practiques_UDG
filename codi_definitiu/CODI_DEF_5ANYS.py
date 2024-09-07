@@ -51,7 +51,7 @@ data_frames = {}
 for key, file in files.items():
     df = read_and_preprocess_csv(file)
     df['Último'] = clean_column(df['Último'])
-    save_to_excel(df, f'C:/Users/Mar/Documents/GitHub/Practiques_UDG/VARIABLES/{key}_filtrat.xlsx')
+    save_to_excel(df, f'{key}_filtrat.xlsx')
     data_frames[key] = df
 
 # Descarregar dades històriques de la borsa
